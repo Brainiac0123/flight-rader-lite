@@ -18,11 +18,17 @@ function planeIcon(flight: Flight, selected: boolean) {
     .filter(Boolean)
     .join(" ");
 
+  const html = `<div class="${classes}" style="width:${size}px;height:${size}px;transform:rotate(${flight.headingDeg}deg)">
+    <svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="currentColor" aria-hidden="true">
+      <path d="M12 2c.7 0 1.2.9 1.2 2v5.1l7.6 4.2c.3.2.5.5.5.9v1.2c0 .3-.3.6-.7.5l-7.4-2.2v3.7l2.5 1.9c.2.2.3.4.3.7v1c0 .3-.3.5-.6.4L12 20.4l-3.4 1.1c-.3.1-.6-.1-.6-.4v-1c0-.3.1-.5.3-.7l2.5-1.9v-3.7l-7.4 2.2c-.4.1-.7-.2-.7-.5v-1.2c0-.4.2-.7.5-.9l7.6-4.2V4c0-1.1.5-2 1.2-2z"/>
+    </svg>
+  </div>`;
+
   return L.divIcon({
-    className: "!bg-transparent !border-0",
+    className: "flight-icon",
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
-    html = `` as never,
+    html,
   });
 }
 

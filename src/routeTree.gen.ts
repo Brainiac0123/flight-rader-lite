@@ -10,33 +10,43 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FlightIcao24RouteImport } from './routes/flight/$icao24'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FlightIcao24Route = FlightIcao24RouteImport.update({
+  id: '/flight/$icao24',
+  path: '/flight/$icao24',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/flight/$icao24': typeof FlightIcao24Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/flight/$icao24': typeof FlightIcao24Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/flight/$icao24': typeof FlightIcao24Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/flight/$icao24'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/flight/$icao24'
+  id: '__root__' | '/' | '/flight/$icao24'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FlightIcao24Route: typeof FlightIcao24Route
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +58,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/flight/$icao24': {
+      id: '/flight/$icao24'
+      path: '/flight/$icao24'
+      fullPath: '/flight/$icao24'
+      preLoaderRoute: typeof FlightIcao24RouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FlightIcao24Route: FlightIcao24Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

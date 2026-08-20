@@ -1,29 +1,89 @@
-# Welcome to your Lovable project
+# Flight Radar Lite
 
-This project was built with [Lovable](https://lovable.dev).
+Live aircraft tracking over Nigerian airspace. Flight Radar Lite renders real-time ADS-B
+positions from the OpenSky Network on an OpenStreetMap basemap and exposes full telemetry
+for every tracked aircraft.
 
-## Build with Lovable
+**FUTM-SWE-221 · Project 13**
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+## Features
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- Dark aviation radar map centred on Nigeria (9.0820°N, 8.6753°E) and constrained to the
+  monitored airspace box (4°–14°N, 2°–15°E).
+- Custom plane glyphs rotated to each aircraft's true track.
+- Live polling every 10 seconds; the previous snapshot stays on screen while refetching.
+- Sidebar with aircraft count, last-updated timestamp, search and a scrollable flight list.
+- Status banner for `Live`, `No flights`, `Demo feed` and `Feed error` states.
+- Demo aircraft fallback (`DEMO123`, 35,000 ft, 480 kts, 9.08°N / 8.68°E) when the feed is
+  empty, so the radar is never blank.
+- Dedicated detail route `/flight/:icao24` with the complete OpenSky state vector:
+  barometric and geometric altitude, ground speed, true track, vertical rate, squawk,
+  ground state, SPI, position source, last contact and data age.
+- Fully responsive: stacked map + list on mobile, split radar/telemetry layout on desktop.
 
-## Development
+## Data pipeline
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+1. Request the Nigerian bounding box directly from the browser:
+   `https://opensky-network.org/api/states/all?lamin=4&lomin=2&lamax=14&lomax=15`
+2. Normalize each positional state vector into a typed object
+   (`src/lib/normalize.ts`), converting metres → feet (×3.28084),
+   m/s → knots (×1.94384) and m/s → ft/min (×196.85).
+3. Drop records without a valid position, records outside the airspace box, and records
+   whose `last_contact` is older than 60 seconds (stale data).
+4. Sort by callsign and render markers; on request failure the last good snapshot remains
+   visible, and an empty feed falls back to the demo aircraft.
 
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+## Tech stack
+
+| Layer      | Choice                                    |
+| ---------- | ----------------------------------------- |
+| Framework  | React 19 + TanStack Start                 |
+| Routing    | TanStack Router (file-based)              |
+| Data       | TanStack Query (`refetchInterval: 10000`)  |
+| Map        | Leaflet + react-leaflet + OpenStreetMap   |
+| Styling    | Tailwind CSS v4 design tokens             |
+| Language   | TypeScript                                |
+
+## Project structure
+
+```
+src/
+  routes/
+    __root.tsx            # document shell, fonts, global metadata
+    index.tsx             # radar map + sidebar
+    flight/$icao24.tsx    # full telemetry detail page
+  components/
+    MapComponent.tsx      # Leaflet map, airspace box, markers
+    FlightMarker.tsx      # rotated plane glyph marker
+    Sidebar.tsx           # counts, selected telemetry, flight list
+    StatusBanner.tsx      # feed status indicator
+  lib/
+    types.ts              # OpenSky + normalized flight types, airspace bounds
+    normalize.ts          # state-vector normalizer, unit conversion, demo data
+    flights.ts            # client fetch + TanStack Query options
+    flights.functions.ts  # optional server relay if the direct call is blocked
+  styles.css              # dark aviation design tokens
 ```
 
-## Built with
+## Getting started
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+```bash
+npm install
+npm run dev      # http://localhost:8080
+npm run build
+npm run preview
+```
+
+## SDLC notes
+
+- **Planning** — scope bounded to Nigerian airspace to keep payloads small and relevant.
+- **Analysis** — target persona: an aviation student inspecting live traffic and telemetry.
+- **Design** — dark radar canvas with a persistent detail panel and monospace telemetry.
+- **Implementation** — 10-second polling loop with incremental marker updates.
+- **Testing** — verified staleness filtering, empty feed, and request-failure fallbacks.
+- **Deployment** — web application served as a single build artifact.
+
+## Attribution
+
+Flight data © [OpenSky Network](https://opensky-network.org/).
+Basemap © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.

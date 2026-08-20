@@ -1,9 +1,10 @@
 /**
  * Client data access for the radar.
  *
- * Strategy: call OpenSky straight from the browser (frontend-only by design).
- * If that request fails for network/CORS reasons, retry once through the
- * server relay so the radar stays live.
+ * OpenSky's CORS policy only allows its own origin, so the snapshot is fetched
+ * through a thin same-origin relay. If the relay is unavailable the browser
+ * falls back to calling OpenSky directly, which succeeds in environments where
+ * cross-origin access is permitted.
  */
 
 import { queryOptions } from "@tanstack/react-query";
@@ -29,12 +30,13 @@ async function fetchDirect(): Promise<OpenSkyResponse> {
 export async function fetchFlights(): Promise<FlightsSnapshot> {
   let payload: OpenSkyResponse;
   try {
-    payload = await fetchDirect();
-  } catch {
     payload = (await getFlightsRelay()) as OpenSkyResponse;
+  } catch {
+    payload = await fetchDirect();
   }
   return normalizeResponse(payload);
 }
+
 
 export const flightsQueryOptions = queryOptions({
   queryKey: ["flights", "nigeria"],

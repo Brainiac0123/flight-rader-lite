@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FlightIcao24RouteImport } from './routes/flight/$icao24'
+import { Route as ApiPublicFlightsRouteImport } from './routes/api/public/flights'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const FlightIcao24Route = FlightIcao24RouteImport.update({
   path: '/flight/$icao24',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFlightsRoute = ApiPublicFlightsRouteImport.update({
+  id: '/api/public/flights',
+  path: '/api/public/flights',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/flight/$icao24': typeof FlightIcao24Route
+  '/api/public/flights': typeof ApiPublicFlightsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/flight/$icao24': typeof FlightIcao24Route
+  '/api/public/flights': typeof ApiPublicFlightsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/flight/$icao24': typeof FlightIcao24Route
+  '/api/public/flights': typeof ApiPublicFlightsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/flight/$icao24'
+  fullPaths: '/' | '/flight/$icao24' | '/api/public/flights'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/flight/$icao24'
-  id: '__root__' | '/' | '/flight/$icao24'
+  to: '/' | '/flight/$icao24' | '/api/public/flights'
+  id: '__root__' | '/' | '/flight/$icao24' | '/api/public/flights'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FlightIcao24Route: typeof FlightIcao24Route
+  ApiPublicFlightsRoute: typeof ApiPublicFlightsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FlightIcao24RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/flights': {
+      id: '/api/public/flights'
+      path: '/api/public/flights'
+      fullPath: '/api/public/flights'
+      preLoaderRoute: typeof ApiPublicFlightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FlightIcao24Route: FlightIcao24Route,
+  ApiPublicFlightsRoute: ApiPublicFlightsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

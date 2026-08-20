@@ -3,16 +3,14 @@
  *
  * OpenSky sends no CORS headers, so the browser can never call it directly.
  * Resolution order:
- *   A. same-origin serverless proxy  -> /api/public/flights
- *   B. server function relay          -> getFlightsRelay()
- *   C. public CORS proxy              -> allorigins.win
- *   D. demo flight (handled by the UI when the snapshot is empty)
+ *   A. Vercel serverless function -> /api/flights
+ *   C. public CORS proxy          -> allorigins.win
+ *   D. demo flight
  */
 
 import { queryOptions } from "@tanstack/react-query";
 
-import { getFlightsRelay } from "./flights.functions";
-import { normalizeResponse } from "./normalize";
+import { demoSnapshot, normalizeResponse } from "./normalize";
 import { NIGERIA_BOUNDS, type FlightsSnapshot, type OpenSkyResponse } from "./types";
 
 const OPENSKY_URL =
@@ -22,8 +20,11 @@ const OPENSKY_URL =
 
 const PROXY_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(OPENSKY_URL)}`;
 
-const isUsable = (payload: unknown): payload is OpenSkyResponse =>
-  Boolean(payload) && typeof payload === "object" && "states" in (payload as object);
+const isUsable = (payload: unknown): payload is OpenSkyResponse => {
+  if (!payload || typeof payload !== "object" || !("states" in payload)) return false;
+  const states = (payload as { states?: unknown }).states;
+  return Array.isArray(states) && states.length > 0;
+};
 
 async function fetchJson(url: string, timeoutMs = 15_000): Promise<unknown> {
   const response = await fetch(url, {
@@ -34,30 +35,18 @@ async function fetchJson(url: string, timeoutMs = 15_000): Promise<unknown> {
   return await response.json();
 }
 
-/** Option A: same-origin serverless proxy. */
+/** Option A: Vercel serverless function. */
 async function fetchViaServerlessProxy(): Promise<OpenSkyResponse | null> {
   try {
-    const data = await fetchJson("/api/public/flights");
+    console.info("[flights] Trying Option A: Vercel serverless function");
+    const data = await fetchJson("/api/flights");
     if (isUsable(data)) {
-      console.info("[flights] Option A: serverless proxy /api/public/flights");
+      console.info("[flights] Option A succeeded");
       return data;
     }
+    console.warn("[flights] Option A returned no flights");
   } catch (error) {
-    console.warn("[flights] Option A (serverless proxy) failed:", error);
-  }
-  return null;
-}
-
-/** Option B: TanStack server-function relay (same origin, RPC). */
-async function fetchViaServerFn(): Promise<OpenSkyResponse | null> {
-  try {
-    const data = (await getFlightsRelay()) as unknown;
-    if (isUsable(data)) {
-      console.info("[flights] Option B: server function relay");
-      return data;
-    }
-  } catch (error) {
-    console.warn("[flights] Option B (server function relay) failed:", error);
+    console.warn("[flights] Option A failed, trying Option C (CORS proxy):", error);
   }
   return null;
 }
@@ -65,26 +54,25 @@ async function fetchViaServerFn(): Promise<OpenSkyResponse | null> {
 /** Option C: public CORS proxy. */
 async function fetchViaCorsProxy(): Promise<OpenSkyResponse | null> {
   try {
+    console.info("[flights] Trying Option C: allorigins CORS proxy");
     const data = await fetchJson(PROXY_URL, 20_000);
     if (isUsable(data)) {
-      console.info("[flights] Option C: public CORS proxy (allorigins)");
+      console.info("[flights] Option C succeeded");
       return data;
     }
+    console.warn("[flights] Option C returned no flights");
   } catch (error) {
-    console.warn("[flights] Option C (CORS proxy) failed:", error);
+    console.warn("[flights] Option C failed too:", error);
   }
   return null;
 }
 
 export async function fetchFlights(): Promise<FlightsSnapshot> {
-  const payload =
-    (await fetchViaServerlessProxy()) ??
-    (await fetchViaServerFn()) ??
-    (await fetchViaCorsProxy());
+  const payload = (await fetchViaServerlessProxy()) ?? (await fetchViaCorsProxy());
 
   if (!payload) {
-    console.warn("[flights] All sources failed — falling back to demo flight");
-    return { time: Math.floor(Date.now() / 1000), flights: [], isDemo: false };
+    console.warn("[flights] Options A and C failed — showing demo flight");
+    return demoSnapshot();
   }
 
   return normalizeResponse(payload);

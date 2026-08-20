@@ -23,15 +23,17 @@ for every tracked aircraft.
 
 ## Data pipeline
 
-1. Request the Nigerian bounding box directly from the browser:
-   `https://opensky-network.org/api/states/all?lamin=4&lomin=2&lamax=14&lomax=15`
-2. Normalize each positional state vector into a typed object
+1. Request the Nigerian bounding box through the Vercel serverless function at
+  `/api/flights`. The function adds CORS headers and fetches OpenSky server-side.
+2. If the serverless function fails or returns no states, request the same bounds through
+  the allorigins CORS proxy.
+3. Normalize each positional state vector into a typed object
    (`src/lib/normalize.ts`), converting metres → feet (×3.28084),
    m/s → knots (×1.94384) and m/s → ft/min (×196.85).
-3. Drop records without a valid position, records outside the airspace box, and records
+4. Drop records without a valid position, records outside the airspace box, and records
    whose `last_contact` is older than 60 seconds (stale data).
-4. Sort by callsign and render markers; on request failure the last good snapshot remains
-   visible, and an empty feed falls back to the demo aircraft.
+5. Sort by callsign and render markers; on request failure the last good snapshot remains
+  visible, and if both live sources fail the demo aircraft is shown.
 
 ## Tech stack
 
@@ -61,7 +63,7 @@ src/
     types.ts              # OpenSky + normalized flight types, airspace bounds
     normalize.ts          # state-vector normalizer, unit conversion, demo data
     flights.ts            # client fetch + TanStack Query options
-    flights.functions.ts  # optional server relay if the direct call is blocked
+    flights.functions.ts  # optional TanStack server relay
   styles.css              # dark aviation design tokens
 ```
 

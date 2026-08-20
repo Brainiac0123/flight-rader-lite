@@ -5,9 +5,9 @@ import { fetchOpenSkyRaw } from "./opensky.server";
 /**
  * Server-side relay for the OpenSky state-vector endpoint.
  *
- * The browser talks to OpenSky directly (it sends permissive CORS headers).
- * This relay is only used as a fallback when the direct call is blocked by a
- * network policy or a corporate proxy, so live data never silently disappears.
+ * This relay is retained for server-side consumers of the TanStack Start app.
+ * The browser-facing fetch order uses the Vercel function and allorigins proxy
+ * so it never calls OpenSky directly.
  */
 export const getFlightsRelay = createServerFn({ method: "GET" }).handler(async () => {
   return fetchOpenSkyRaw();
